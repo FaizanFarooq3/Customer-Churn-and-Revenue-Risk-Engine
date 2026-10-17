@@ -3,6 +3,7 @@
 #envinorment variables
 .env
 .env.*
+!.env.example
 
 #python caches 
 __pycaches__/
@@ -12,6 +13,12 @@ __pycaches__/
 #mlflow tracking data & databaes
 mlartifacts/
 mlflow.db
+mlruns/
 
 #data directory 
 data/
+
+.pytest_cache/
+.ipynb_checkpoints/
+.vscode/
+*.log
