@@ -7,13 +7,16 @@ from src.api.schemas import CustomerFeaturesRequest, RiskPredictionResponse
 
 # Global variables
 MODEL = None
-MODEL_VERSION = "1" 
+MODEL_VERSION = "2" 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the model from MLflow when the server starts."""
     global MODEL
-    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+
+    #read the ui from the envinorment, defaulting to localhost for localdev
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
+    mlflow.set_tracking_uri(tracking_uri)
     model_uri = f"models:/Risk_Xgboost_Model/{MODEL_VERSION}"
     
     print(f"Loading model from MLflow: {model_uri}")
