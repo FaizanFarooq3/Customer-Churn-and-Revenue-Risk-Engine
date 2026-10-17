@@ -1,0 +1,17 @@
+.venv/
+
+#envinorment variables
+.env
+.env.*
+
+#python caches 
+__pycaches__/
+*.py[cod]
+*$py.class
+
+#mlflow tracking data & databaes
+mlartifacts/
+mlflow.db
+
+#data directory 
+data/
