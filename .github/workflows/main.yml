@@ -59,10 +59,10 @@ jobs:
                 done
 
                 echo "Testing GET / health check.. "
-                curl -s -f http://localhost:8000/ | grep '"status": "healthy"'
+                curl -s -f http://localhost:8000/ | grep '"status":"healthy"'
 
                 echo "Testing POST /predict with tests/sample_request.json..."
-                RESPONSE =$(curl -s -f -X POST http://localhost:8000/predict \
+                RESPONSE=$(curl -s -f -X POST http://localhost:8000/predict \
                     -H "Content-Type: application/json" \
                     -d @tests/sample_request.json)
                 echo "Prediction response: $RESPONSE"

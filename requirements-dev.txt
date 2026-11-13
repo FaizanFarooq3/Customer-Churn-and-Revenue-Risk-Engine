@@ -3,7 +3,7 @@ pytest
 httpx
 pandera
 sqlalchemy
-psycopg2-binary
+psycopg[binary]
 python-dotenv
 pyarrow
 optuna
