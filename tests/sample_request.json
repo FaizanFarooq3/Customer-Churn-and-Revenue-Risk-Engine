@@ -1,0 +1,17 @@
+{
+  "frequency": 12.0,
+  "monetary": 1250.50,
+  "total_quantity": 45.0,
+  "unique_products": 15.0,
+  "recency_days": 14.0,
+  "tenure_days": 180.0,
+  "avg_order_value": 104.20,
+  "avg_basket_size": 3.75,
+  "purchase_frequency_per_month": 2.0,
+  "avg_days_between_orders": 15.1,
+  "is_uk": 1,
+  "cancellation_rate": 0.05,
+  "spend_last_90d": 650.0,
+  "spend_prev_90d": 600.50,
+  "spending_trend_90d": 1.08
+}

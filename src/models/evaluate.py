@@ -43,8 +43,3 @@ def log_evaluation_to_mlflow(metrics, prefix="test_"):
     """Logs the dictionary of metrics to the active mlflow run"""
     mlflow_metrics = {f"{prefix}{k}": v for k, v in metrics.items()}
     mlflow.log_metrics(mlflow_metrics)
-
-
-#what is the prefix in the above functino??
-#check in some fiunctions we are using prob whereas in some we are using class why, what is the difference?
-# is it based on the type of metric that we use 

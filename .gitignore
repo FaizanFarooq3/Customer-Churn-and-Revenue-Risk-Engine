@@ -1,4 +1,5 @@
 .venv/
+venv/
 
 #envinorment variables
 .env
@@ -6,7 +7,7 @@
 !.env.example
 
 #python caches 
-__pycaches__/
+__pycache__/
 *.py[cod]
 *$py.class
 

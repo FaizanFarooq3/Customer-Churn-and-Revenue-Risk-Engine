@@ -23,4 +23,6 @@ class RiskPredictionResponse(BaseModel):
     risk_probability: float
     risk_band: str
     expected_revenue_at_risk: float
+    customer_segment: str
+    recommended_action: str
     model_version: str

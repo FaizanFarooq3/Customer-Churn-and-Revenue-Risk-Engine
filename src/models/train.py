@@ -96,10 +96,3 @@ def train_and_evaluate():
 
 if __name__ == "__main__":
     train_and_evaluate()
-
-
-
-#what is the difference between xgboost and mlflow.xgboost ( is it used to track the model??) 
-# -- what is the need of importing it?
-#what is pr-auc (precision-recall auc)
-#what is optuna study

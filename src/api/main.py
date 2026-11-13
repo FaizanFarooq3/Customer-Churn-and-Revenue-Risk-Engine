@@ -8,7 +8,22 @@ from src.api.schemas import CustomerFeaturesRequest, RiskPredictionResponse
 # 1. Define globals first
 MODEL = None
 MODEL_VERSION = "2" 
-MODEL_PATH = os.getenv("MODEL_PATH", "MODEL_EXPORT")
+MODEL_PATH = os.getenv("MODEL_PATH", "model_export")
+
+def assign_segment_and_action(risk_prob: float, spend_last_90d: float) -> tuple[str, str]:
+    """it maps risk prob and recent spend into a business segment and action"""
+    if risk_prob >= 0.50:
+        if spend_last_90d >= 500.0:
+            return (
+                "High-value at risk", "Immediate personal outreach + vip retenetion offer",
+            )
+        elif spend_last_90d > 0.0:
+            return ("At risk", "Trigger automated win-back email + time limited discount",)
+        else: 
+            return ("Low-value inactive", "Low-cost automated re-engagement newsletter only",)
+    else:
+        return ("Healthy","Standard lifecycle marketing + cross-sell recommendations",)
+
 
 # 2. Define the lifespan function second
 @asynccontextmanager
@@ -62,10 +77,13 @@ def predict_risk(request: CustomerFeaturesRequest):
         band = "low"
 
     revenue_at_risk = round(risk_prob * request.spend_last_90d, 2)
+    segment, action = assign_segment_and_action(risk_prob, request.spend_last_90d)
 
     return RiskPredictionResponse(
         risk_probability=round(risk_prob, 4),
         risk_band=band,
         expected_revenue_at_risk=revenue_at_risk,
-        model_version=MODEL_VERSION
+        customer_segment=segment,
+        recommended_action=action,
+        model_version=MODEL_VERSION,
     )

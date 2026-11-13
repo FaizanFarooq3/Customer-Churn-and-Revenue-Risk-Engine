@@ -1,0 +1,82 @@
+name: Customer Risk Engine CI
+
+on:
+    push:
+        branches: ['main', 'master']
+    pull_request:
+        branches: ['main', 'master']
+jobs:
+    test-and-verify-container: 
+        runs-on: ubuntu-latest
+
+        steps:
+
+            #1. to pull repository code into the github linux runner
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            
+            #2. to set up python to match local venv and dockerfile
+            - name: Set up Python 3.13
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.13"
+                cache: "pip"
+            
+            #3. install dependecies from requirements.txt + pandera, sqlachemy, pytest
+            - name: Install dependencies
+              run: |
+                python -m pip install --upgrade pip
+                pip install -r requirements-dev.txt
+
+
+            #4. Run the pytest suite (validates Pandera Schemas, RFM Features, and FastAPI via model_export)
+            - name: Run unit and API tests with pytest
+              env: 
+                PYTHONPATH: ${{github.workspace}}
+                MODEL_PATH: model_export    
+              run: |
+                pytest -v
+
+            #5. Build the production docker image ( uses lean requirements.txt)
+            - name: Build FastAPI Docker image
+              run: |
+                docker build -t customer-risk-api:ci -f docker/Dockerfile . 
+
+            #6. Boot the container and run a live HTTP smoke test against / and /predict
+            - name: Run Docker container smoke test
+              run: | 
+                docker run -d --name risk-api-test -p 8000:8000 customer-risk-api:ci
+
+                echo "waiting for FastAPI container to start and load model_export.."
+
+                for i in {1..20}; do 
+                    if curl -s -f http://localhost:8000/ > /dev/null; then
+                        echo "container is up!"
+                        break
+                    fi
+                    sleep 2
+                done
+
+                echo "Testing GET / health check.. "
+                curl -s -f http://localhost:8000/ | grep '"status": "healthy"'
+
+                echo "Testing POST /predict with tests/sample_request.json..."
+                RESPONSE =$(curl -s -f -X POST http://localhost:8000/predict \
+                    -H "Content-Type: application/json" \
+                    -d @tests/sample_request.json)
+                echo "Prediction response: $RESPONSE"
+                echo "$RESPONSE" | grep '"customer_segment"' 
+
+                docker logs risk-api-test
+                docker stop risk-api-test
+
+
+
+
+            
+                
+
+
+            
+
