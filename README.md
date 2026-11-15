@@ -61,13 +61,13 @@ $$\text{Expected Revenue at Risk} = P(\text{Inactivity in Next 90 Days}) \times 
   └────────────┬─────────────┘
                ▼
   ┌──────────────────────────┐
-  │ XGBoost + Optuna +       │  20 Optuna trials maximizing PR-AUC -> Tracks experiments,
-  │ MLflow Model Registry    │  Brier calibration & Revenue at Risk -> Exports production artifact
+  │ Model Comparison, Optuna │  Compares LogReg, Random Forest & Optuna-tuned XGBoost ->
+  │ + SHAP + MLflow Registry │  Logs ROC/PR, Calibration & SHAP -> Exports production artifact
   └────────────┬─────────────┘
                ▼
   ┌──────────────────────────┐
-  │ FastAPI + Docker         │  Self-contained container loads exported model from /app/model_export
-  │ + GitHub Actions CI      │  (Zero runtime dependency on MLflow server) -> Tested via Pytest
+  │ FastAPI + Docker + CI    │  Self-contained container loads exported model from /app/model_export
+  │ + PSI/KS Drift Monitor   │  (Zero runtime MLflow dependency) -> Pytest + Drift Reports
   └──────────────────────────┘
 ```
 
@@ -88,77 +88,108 @@ Instead of a random `train_test_split` (which leaks future customer behavior int
 
 ---
 
-## 4. Model Performance (Test Split)
+## 4. Model Progression & Performance (Test Split)
 
-Hyperparameters were tuned across 20 trials using **Optuna** optimizing Validation **PR-AUC** and logged to the **MLflow Model Registry** (`Risk_Xgboost_Model`):
+Models were benchmarked across discrimination (`ROC-AUC`, `PR-AUC`), probability calibration (`Brier Score`), and business impact (`Top-10% Risk Precision` and `Expected Revenue at Risk`):
 
-| Model Version | ROC-AUC | PR-AUC | Brier Score (Calibration) | Top-10% Risk Precision | Test Portfolio Revenue at Risk |
+| Model | ROC-AUC | PR-AUC | Brier Score (Lower = Better) | Top-10% Risk Precision | Test Portfolio Revenue at Risk |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **v1: XGBoost Baseline** | 0.7744 | 0.7946 | — | — | £445,723.11 |
-| **v2: XGBoost (Optuna Tuned)** | **0.7996** | **0.8227** | **0.1656** | **0.9197** | **£350,829.22** |
+| **XGBoost Baseline (v1)** | 0.7744 | 0.7946 | — | — | £445,723.11 |
+| **XGBoost Optuna Tuned (v2 - Production)** | **0.7996** | **0.8227** | **0.1656** | **0.9197** | **£350,829.22** |
 
 ---
 
-## 5. Repository Structure
+## 5. Diagnostic Curves & SHAP Explainability
+
+### ROC & Precision-Recall Comparison (`Logistic Regression` vs `Random Forest` vs `Tuned XGBoost`)
+![ROC and PR Curves](reports/figures/model_comparison_roc_pr.png)
+
+### Probability Calibration & Confusion Matrix
+| Calibration Curve (Reliability Diagram) | Tuned XGBoost Confusion Matrix |
+| :---: | :---: |
+| ![Calibration Curve](reports/figures/calibration_curve.png) | ![Confusion Matrix](reports/figures/confusion_matrix.png) |
+
+### SHAP Feature Importance (Drivers of Inactivity Risk)
+![SHAP Summary Plot](reports/figures/shap_summary.png)
+
+---
+
+## 6. Data & Prediction Drift Monitoring (PSI + KS-Test)
+
+The monitoring module (`src/monitoring/drift_report.py`) evaluates **Data Drift** across all 15 input features and **Prediction Drift** on `risk_probability` between the Reference (`Train`) and Current (`Test`) snapshots using the **Two-Sample Kolmogorov-Smirnov (KS) Test** and **Population Stability Index (PSI)**:
+
+- **$\text{PSI} < 0.10$:** `STABLE` (Core behavioral features like `avg_order_value`, `spend_last_90d`, `cancellation_rate`, and `avg_basket_size` remain highly stable with $\text{PSI} < 0.002$).
+- **$0.10 \le \text{PSI} < 0.25$:** `MODERATE DRIFT` (`purchase_frequency_per_month` at $\text{PSI} = 0.1204$).
+- **$\text{PSI} \ge 0.25$:** `SIGNIFICANT DRIFT` (Cumulative calendar features such as `tenure_days` and seasonal window `spend_prev_90d` shift as the customer base matures across quarters).
+
+![Drift Summary Plot](reports/figures/drift_summary.png)
+
+---
+
+## 7. Repository Structure
 
 ```text
 customer-risk-engine/
-├── .github/workflows/main.yml   # CI pipeline: runs Pytest + builds & smoke-tests Docker image
+├── .github/workflows/main.yml       # CI pipeline: runs 8 Pytest tests + Docker build & smoke test
 ├── docker/
-│   └── Dockerfile               # Production Python 3.13-slim image baking in src/ and model_export/
-├── model_export/                # Exported production XGBoost artifact for zero-dependency serving
+│   └── Dockerfile                   # Production Python 3.13-slim image baking in src/ and model_export/
+├── model_export/                    # Exported production XGBoost artifact for zero-dependency serving
+├── reports/
+│   ├── figures/                     # Generated ROC/PR, Calibration, Confusion Matrix, SHAP & Drift plots
+│   ├── drift_report.html            # Standalone interactive HTML Data & Prediction Drift dashboard
+│   └── drift_metrics.json           # Machine-readable PSI and KS-Test monitoring output
 ├── src/
-│   ├── config.py                # SQLAlchemy PostgreSQL engine configuration
+│   ├── config.py                    # SQLAlchemy PostgreSQL engine configuration
 │   ├── ingestion/
-│   │   └── load_to_postgres.py  # Loads raw Excel sheets into PostgreSQL (raw_transactions)
+│   │   └── load_to_postgres.py      # Loads raw Excel sheets into PostgreSQL (raw_transactions)
 │   ├── validation/
-│   │   ├── schemas.py           # Pandera schemas for raw and cleaned transaction tables
-│   │   ├── run_validation.py    # Audits raw data quality and surfaces schema violations
-│   │   └── clean_data.py        # Cleans records, flags cancellations & writes clean_transactions
+│   │   ├── schemas.py               # Pandera schemas for raw and cleaned transaction tables
+│   │   ├── run_validation.py        # Audits raw data quality and surfaces schema violations
+│   │   └── clean_data.py            # Cleans records, flags cancellations & writes clean_transactions
 │   ├── features/
-│   │   ├── queries.py           # Extracts validated transactions from PostgreSQL
-│   │   └── build_features.py    # Point-in-time RFM + velocity feature engineering (Parquet + DB)
+│   │   ├── queries.py               # Extracts validated transactions from PostgreSQL
+│   │   └── build_features.py        # Point-in-time RFM + velocity feature engineering (Parquet + DB)
 │   ├── models/
-│   │   ├── evaluate.py          # ML metrics, Brier score, top-decile precision & Revenue at Risk
-│   │   ├── xgbbaseline_train.py # Baseline XGBoost training run logged to MLflow
-│   │   ├── train.py             # Optuna hyperparameter tuning + MLflow registration
-│   │   └── predict.py           # Batch scoring pipeline writing to customer_risk_scores table
+│   │   ├── evaluate.py              # ML metrics, Brier score, top-decile precision & Revenue at Risk
+│   │   ├── xgbbaseline_train.py     # Baseline XGBoost training run logged to MLflow
+│   │   ├── train.py                 # Optuna hyperparameter tuning + MLflow registration
+│   │   ├── compare_and_explain.py   # Benchmarks LogReg/RF/XGBoost + generates SHAP & diagnostic plots
+│   │   └── predict.py               # Batch scoring pipeline writing to customer_risk_scores table
+│   ├── monitoring/
+│   │   └── drift_report.py          # Computes PSI & KS-Test Data/Prediction Drift (HTML/JSON/PNG)
 │   └── api/
-│       ├── schemas.py           # Pydantic v2 request/response contracts
-│       └── main.py              # FastAPI service (/ and /predict) loading from model_export/
+│       ├── schemas.py               # Pydantic v2 request/response contracts
+│       └── main.py                  # FastAPI service (/ and /predict) loading from model_export/
 ├── tests/
-│   ├── sample_request.json      # Sample customer feature payload for API testing
-│   ├── test_validation.py       # Unit tests for Pandera data quality schemas
-│   ├── test_features.py         # Unit tests verifying zero temporal leakage in feature logic
-│   └── test_api.py              # FastAPI TestClient integration tests against model_export/
-├── docker-compose.yml           # Local container orchestration
-├── requirements.txt             # Pinned production dependencies for Docker API container
-├── requirements-dev.txt         # Full test & pipeline dependencies for local dev and CI
+│   ├── sample_request.json          # Sample customer feature payload for API testing
+│   ├── test_validation.py           # Unit tests for Pandera data quality schemas
+│   ├── test_features.py             # Unit tests verifying zero temporal leakage in feature logic
+│   ├── test_monitoring.py           # Unit tests for PSI drift calculation math
+│   └── test_api.py                  # FastAPI TestClient integration tests against model_export/
+├── docker-compose.yml               # Local container orchestration
+├── requirements.txt                 # Pinned production dependencies for Docker API container
+├── requirements-dev.txt             # Full test & pipeline dependencies for local dev and CI
 └── README.md
 ```
 
 ---
 
-## 6. Quickstart Guide
+## 8. Quickstart Guide
 
 ### A. Run the Containerized API (No Local DB or MLflow Required)
-Because the production model artifact is baked into `model_export/`, you can build and run the inference service immediately with Docker:
-
 ```bash
 docker-compose up --build
 ```
 - **Interactive Swagger UI:** `http://localhost:8000/docs`
 - **Health Check:** `GET http://localhost:8000/`
 
-### B. Run the Automated Test Suite
+### B. Run the Automated Test Suite (8 Unit & Integration Tests)
 ```bash
 pip install -r requirements-dev.txt
 pytest -v
 ```
 
-### C. Run the Full Offline Training Pipeline (Requires Local PostgreSQL & Dataset)
-1. Place `online_retail_II.xlsx` ([UCI Dataset](https://archive.ics.uci.edu/dataset/502/online+retail+ii)) in `data/raw/` and configure `.env` with your PostgreSQL credentials.
-2. Execute each pipeline stage sequentially:
+### C. Run the Offline Training, Explainability & Drift Pipeline
 ```bash
 # 1. Ingest raw Excel sheets to PostgreSQL
 python -m src.ingestion.load_to_postgres
@@ -172,6 +203,12 @@ python -m src.features.build_features
 # 4. Tune XGBoost with Optuna and log to MLflow
 python -m src.models.train
 
-# 5. Run batch scoring across all active customers
+# 5. Benchmark LogReg/RF/XGBoost & generate SHAP + calibration plots
+python -m src.models.compare_and_explain
+
+# 6. Run batch scoring across all active customers
 python -m src.models.predict
+
+# 7. Generate Data & Prediction Drift monitoring report (HTML, PNG, JSON)
+python -m src.monitoring.drift_report
 ```
