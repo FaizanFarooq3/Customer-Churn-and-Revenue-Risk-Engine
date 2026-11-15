@@ -7,3 +7,5 @@ psycopg[binary]
 python-dotenv
 pyarrow
 optuna
+matplotlib
+shap

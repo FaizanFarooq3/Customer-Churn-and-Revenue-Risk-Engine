@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Customer Risk Engine - Data & Prediction Drift Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 32px; background: #f8f9fa; color: #212529; }
+    h1 { color: #1d3557; margin-bottom: 4px; }
+    p.sub { color: #6c757d; margin-top: 0; }
+    .drift-table { border-collapse: collapse; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 6px; overflow: hidden; }
+    .drift-table th { background: #1d3557; color: #fff; text-align: left; padding: 12px; }
+    .drift-table td { padding: 10px 12px; border-bottom: 1px solid #dee2e6; }
+    .drift-table tr:hover { background: #f1f3f5; }
+  </style>
+</head>
+<body>
+  <h1>Customer Lifecycle & Revenue Risk Engine — Drift Monitoring Report</h1>
+  <p class="sub">Reference Window: Train Split (2011-03-01, n=4,513) vs. Current Window: Test Split (2011-09-01, n=5,225)</p>
+  <table class="dataframe drift-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>feature</th>
+      <th>type</th>
+      <th>ref_mean</th>
+      <th>cur_mean</th>
+      <th>ks_statistic</th>
+      <th>ks_p_value</th>
+      <th>psi</th>
+      <th>status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>tenure_days</td>
+      <td>Feature</td>
+      <td>291.383</td>
+      <td>424.293</td>
+      <td>0.5169</td>
+      <td>0.000000</td>
+      <td>1.1224</td>
+      <td>SIGNIFICANT DRIFT</td>
+    </tr>
+    <tr>
+      <td>recency_days</td>
+      <td>Feature</td>
+      <td>137.390</td>
+      <td>203.122</td>
+      <td>0.2330</td>
+      <td>0.000000</td>
+      <td>0.3874</td>
+      <td>SIGNIFICANT DRIFT</td>
+    </tr>
+    <tr>
+      <td>spending_trend_90d</td>
+      <td>Feature</td>
+      <td>67.518</td>
+      <td>86.383</td>
+      <td>0.2862</td>
+      <td>0.000000</td>
+      <td>0.3836</td>
+      <td>SIGNIFICANT DRIFT</td>
+    </tr>
+    <tr>
+      <td>spend_prev_90d</td>
+      <td>Feature</td>
+      <td>654.870</td>
+      <td>316.033</td>
+      <td>0.2624</td>
+      <td>0.000000</td>
+      <td>0.2740</td>
+      <td>SIGNIFICANT DRIFT</td>
+    </tr>
+    <tr>
+      <td>purchase_frequency_per_month</td>
+      <td>Feature</td>
+      <td>0.489</td>
+      <td>0.408</td>
+      <td>0.1671</td>
+      <td>0.000000</td>
+      <td>0.1204</td>
+      <td>MODERATE DRIFT</td>
+    </tr>
+    <tr>
+      <td>risk_probability</td>
+      <td>Prediction</td>
+      <td>0.649</td>
+      <td>0.680</td>
+      <td>0.0781</td>
+      <td>0.000000</td>
+      <td>0.0512</td>
+      <td>MODERATE DRIFT</td>
+    </tr>
+    <tr>
+      <td>avg_days_between_orders</td>
+      <td>Feature</td>
+      <td>49.389</td>
+      <td>62.695</td>
+      <td>0.0784</td>
+      <td>0.000000</td>
+      <td>0.0337</td>
+      <td>MODERATE DRIFT</td>
+    </tr>
+    <tr>
+      <td>frequency</td>
+      <td>Feature</td>
+      <td>4.781</td>
+      <td>5.655</td>
+      <td>0.0434</td>
+      <td>0.000210</td>
+      <td>0.0136</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>total_quantity</td>
+      <td>Feature</td>
+      <td>1391.696</td>
+      <td>1611.217</td>
+      <td>0.0316</td>
+      <td>0.015513</td>
+      <td>0.0074</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>unique_products</td>
+      <td>Feature</td>
+      <td>66.883</td>
+      <td>74.098</td>
+      <td>0.0261</td>
+      <td>0.072103</td>
+      <td>0.0060</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>monetary</td>
+      <td>Feature</td>
+      <td>2195.561</td>
+      <td>2581.562</td>
+      <td>0.0305</td>
+      <td>0.021797</td>
+      <td>0.0057</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>avg_order_value</td>
+      <td>Feature</td>
+      <td>373.798</td>
+      <td>367.208</td>
+      <td>0.0177</td>
+      <td>0.430698</td>
+      <td>0.0015</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>spend_last_90d</td>
+      <td>Feature</td>
+      <td>348.133</td>
+      <td>351.848</td>
+      <td>0.0090</td>
+      <td>0.988556</td>
+      <td>0.0011</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>cancellation_rate</td>
+      <td>Feature</td>
+      <td>0.118</td>
+      <td>0.116</td>
+      <td>0.0152</td>
+      <td>0.625320</td>
+      <td>0.0011</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>avg_basket_size</td>
+      <td>Feature</td>
+      <td>257.712</td>
+      <td>246.404</td>
+      <td>0.0098</td>
+      <td>0.970729</td>
+      <td>0.0005</td>
+      <td>STABLE</td>
+    </tr>
+    <tr>
+      <td>is_uk</td>
+      <td>Feature</td>
+      <td>0.919</td>
+      <td>0.913</td>
+      <td>0.0059</td>
+      <td>0.999995</td>
+      <td>0.0000</td>
+      <td>STABLE</td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>
